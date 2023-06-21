@@ -31,6 +31,7 @@ class Button(pygame.sprite.Sprite):
         self.button_y = (window_height - self.button_height) // 2 + 300
         self.image = pygame.image.load("button.png")
         self.rect = self.image.get_rect(topleft = (self.button_x,self.button_y))
+    #click to add whale
     def update(self,mouse_x,mouse_y,whales):
         if self.rect.collidepoint(mouse_x, mouse_y):
             whales.add(Whale(0, 1900))
@@ -44,8 +45,8 @@ class Whale(pygame.sprite.Sprite):
         self.speed = 5
         self.health = 20
         self.attack = 5
-        self.atkspeed = 500
-        self.last_attack = pygame.time.get_ticks()
+        self.atkspeed = 500   #attack every 500 milliseconds
+        self.last_attack = pygame.time.get_ticks()   #keep track of time
         self.atkphase = False
         self.viewport_x = viewport_x
         self.image = pygame.image.load('whales.png').convert_alpha()
