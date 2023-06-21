@@ -34,40 +34,61 @@ class Button(pygame.sprite.Sprite):
     #click to add whale
     def update(self,mouse_x,mouse_y,whales):
         if self.rect.collidepoint(mouse_x, mouse_y):
-            whales.add(Whale(0, 1900))
+            whales.add(Whale(1900))
 
 class Whale(pygame.sprite.Sprite):
-    def __init__(self,viewport_x,whale_x):
+    def __init__(self,x):
         super().__init__()
         self.width = 100
         self.height = 100
-        self.whale_x = whale_x
+        self.x = x
         self.speed = 5
         self.health = 20
         self.attack = 5
         self.atkspeed = 500   #attack every 500 milliseconds
         self.last_attack = pygame.time.get_ticks()   #keep track of time
         self.atkphase = False
-        self.viewport_x = viewport_x
         self.image = pygame.image.load('whales.png').convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
-        self.rect = self.image.get_rect(topleft = (self.whale_x-self.viewport_x, 535))
+        self.rect = self.image.get_rect(topleft = (self.x, 535))
     def move(self):
-        self.whale_x -= self.speed
-    def hurt(self, tower):
+        self.x -= self.speed
+    def hurt(self, towerbear):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_attack >= self.atkspeed:
-            if tower.sprite.health > 0:
-                tower.sprite.health -= 5
+            if towerbear.sprite.health > 0:
+                towerbear.sprite.health -= 5
                 self.last_attack = current_time
-    def update(self,viewport_x,tower):
+    def update(self,viewport_x,towerbear):
         self.viewport_x = viewport_x
         self.move()
-        self.rect = self.image.get_rect(topleft=(self.whale_x-self.viewport_x, 535))
+        self.rect = self.image.get_rect(topleft=(self.x-self.viewport_x, 535))
         if self.speed == 0: self.atkphase = True
         else: False
         if self.atkphase:
-            self.hurt(tower)
+            self.hurt(towerbear)
+
+class Bear(pygame.sprite.Sprite):
+    def __init__(self,x):
+        super().__init__()
+        self.width = 100
+        self.height = 100
+        self.x = x
+        self.speed = 5
+        self.health = 20
+        self.attack = 5
+        self.atkspeed = 500  # attack every 500 milliseconds
+        self.last_attack = pygame.time.get_ticks()  # keep track of time
+        self.atkphase = False
+        self.image = pygame.image.load('bear.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        self.rect = self.image.get_rect(topleft=(self.x, 535))
+    def move(self):
+        self.x += self.speed
+    def update(self,viewport_x,towerbear):
+        self.viewport_x = viewport_x
+        self.move()
+        self.rect = self.image.get_rect(topleft=(self.x-self.viewport_x, 535))
 
 class Tower(pygame.sprite.Sprite):
     def __init__(self,x,y):
@@ -86,15 +107,16 @@ class Tower(pygame.sprite.Sprite):
         text = font.render(str(self.health) + " / " + str(self.maxhealth), True, (255,255,255))
         text_rect = self.image.get_rect(topleft = (self.x + self.width/6 - viewport_x,self.y - 50))
         window.blit(text,text_rect)
-def collision(whales,tower1):
-    if pygame.sprite.spritecollide(tower1.sprite,whales,False):
+
+def collision(units,tower):
+    if pygame.sprite.spritecollide(tower.sprite,units,False):
         return True
     else: return False
 
-def stop(whales,tower1):
-    list = pygame.sprite.spritecollide(tower1.sprite, whales, False)
-    for whale in list:
-        whale.speed = 0
+def stop(units,tower):
+    list = pygame.sprite.spritecollide(tower.sprite, units, False)
+    for units in list:
+        units.speed = 0
 
 clock = pygame.time.Clock()
 
@@ -103,6 +125,8 @@ buttons = pygame.sprite.Group()
 buttons.add(button)
 
 whales = pygame.sprite.Group()
+bears = pygame.sprite.Group()
+bears.add(Bear(50))
 
 tower1 = pygame.sprite.GroupSingle()
 tower1.add(Tower(100,250))
@@ -144,6 +168,10 @@ while running:
         if collision(whales,tower1):
             stop(whales,tower1)
 
+    for bear in bears:
+        if collision(bears,tower2):
+            stop(bears,tower2)
+
     tower1.update(viewport_x,window)
     tower1.draw(window)
     tower2.update(viewport_x,window)
@@ -151,6 +179,9 @@ while running:
 
     whales.update(viewport_x, tower1)
     whales.draw(window)
+
+    bears.update(viewport_x,tower2)
+    bears.draw(window)
 
     pygame.display.flip()
     clock.tick(60)
