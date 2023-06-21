@@ -3,6 +3,7 @@ import time
 import random
 
 pygame.init()
+font = pygame.font.Font('freesansbold.ttf', 32)
 
 window_width = 1200
 window_height = 800
@@ -41,16 +42,31 @@ class Whale(pygame.sprite.Sprite):
         self.height = 100
         self.whale_x = whale_x
         self.speed = 5
+        self.health = 20
+        self.attack = 5
+        self.atkspeed = 500
+        self.last_attack = pygame.time.get_ticks()
+        self.atkphase = False
         self.viewport_x = viewport_x
         self.image = pygame.image.load('whales.png').convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
         self.rect = self.image.get_rect(topleft = (self.whale_x-self.viewport_x, 535))
     def move(self):
         self.whale_x -= self.speed
+    def hurt(self, tower):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_attack >= self.atkspeed:
+            if tower.sprite.health > 0:
+                tower.sprite.health -= 5
+                self.last_attack = current_time
     def update(self,viewport_x,tower):
         self.viewport_x = viewport_x
         self.move()
         self.rect = self.image.get_rect(topleft=(self.whale_x-self.viewport_x, 535))
+        if self.speed == 0: self.atkphase = True
+        else: False
+        if self.atkphase:
+            self.hurt(tower)
 
 class Tower(pygame.sprite.Sprite):
     def __init__(self,x,y):
@@ -59,12 +75,16 @@ class Tower(pygame.sprite.Sprite):
         self.y = y
         self.width = 200
         self.height = 400
+        self.health = 200
+        self.maxhealth = 200
         self.image = pygame.image.load("eiffel.jpg")
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
         self.rect = self.image.get_rect(topleft = (self.x,self.y))
-    def update(self,viewport_x):
+    def update(self,viewport_x,window):
         self.rect = self.image.get_rect(topleft=(self.x-viewport_x, self.y))
-
+        text = font.render(str(self.health) + " / " + str(self.maxhealth), True, (255,255,255))
+        text_rect = self.image.get_rect(topleft = (self.x + self.width/6 - viewport_x,self.y - 50))
+        window.blit(text,text_rect)
 def collision(whales,tower1):
     if pygame.sprite.spritecollide(tower1.sprite,whales,False):
         return True
@@ -123,9 +143,9 @@ while running:
         if collision(whales,tower1):
             stop(whales,tower1)
 
-    tower1.update(viewport_x)
+    tower1.update(viewport_x,window)
     tower1.draw(window)
-    tower2.update(viewport_x)
+    tower2.update(viewport_x,window)
     tower2.draw(window)
 
     whales.update(viewport_x, tower1)
