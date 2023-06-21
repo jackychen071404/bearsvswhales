@@ -30,9 +30,10 @@ class Button(pygame.sprite.Sprite):
         self.button_y = (window_height - self.button_height) // 2 + 300
         self.image = pygame.image.load("button.png")
         self.rect = self.image.get_rect(topleft = (self.button_x,self.button_y))
-    def updater(self,mouse_x,mouse_y):
+    def update(self,mouse_x,mouse_y,whales):
         if self.rect.collidepoint(mouse_x, mouse_y):
-            print("hi")
+            whales.add(Whale(0, 1900))
+
 class Whale(pygame.sprite.Sprite):
     def __init__(self,viewport_x,whale_x):
         super().__init__()
@@ -48,10 +49,11 @@ class Whale(pygame.sprite.Sprite):
         self.whale_x -= self.speed
     def update(self,viewport_x,tower):
         self.viewport_x = viewport_x
-        self.rect = self.image.get_rect(topleft=(self.whale_x - self.viewport_x, 535))
         self.move()
+        self.rect = self.image.get_rect(topleft=(self.whale_x-self.viewport_x, 535))
+
 class Tower(pygame.sprite.Sprite):
-    def __init__(self,viewport_x,x,y):
+    def __init__(self,x,y):
         super().__init__()
         self.x = x
         self.y = y
@@ -59,12 +61,20 @@ class Tower(pygame.sprite.Sprite):
         self.height = 400
         self.image = pygame.image.load("eiffel.jpg")
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
-        self.rect = self.image.get_rect(topleft = (self.x-viewport_x,self.y))
+        self.rect = self.image.get_rect(topleft = (self.x,self.y))
     def update(self,viewport_x):
-        self.rect = self.image.get_rect(topleft=(self.x - viewport_x, self.y))
+        self.rect = self.image.get_rect(topleft=(self.x-viewport_x, self.y))
 
 def collision(whales,tower1):
-    pass
+    if pygame.sprite.spritecollide(tower1.sprite,whales,False):
+        return True
+    else: return False
+
+def stop(whales,tower1):
+    list = pygame.sprite.spritecollide(tower1.sprite, whales, False)
+    for whale in list:
+        whale.speed = 0
+
 clock = pygame.time.Clock()
 
 button = Button()
@@ -72,12 +82,11 @@ buttons = pygame.sprite.Group()
 buttons.add(button)
 
 whales = pygame.sprite.Group()
-whales.add(Whale(0,1900))
 
 tower1 = pygame.sprite.GroupSingle()
-tower1.add(Tower(0,100,250))
+tower1.add(Tower(100,250))
 tower2 = pygame.sprite.GroupSingle()
-tower2.add(Tower(0,1700,250))
+tower2.add(Tower(1700,250))
 
 running = True
 while running:
@@ -90,7 +99,7 @@ while running:
             if event.button == 1:  # Left mouse button
                 dragging = True
                 drag_start = event.pos
-            button.updater(mouse_x,mouse_y)
+            button.update(mouse_x,mouse_y,whales)
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # Left mouse button
                 dragging = False
@@ -110,15 +119,16 @@ while running:
     window.blit(background_image, (-viewport_x, -viewport_y))
     buttons.draw(window)
 
+    for whale in whales:
+        if collision(whales,tower1):
+            stop(whales,tower1)
+
     tower1.update(viewport_x)
     tower1.draw(window)
     tower2.update(viewport_x)
     tower2.draw(window)
-    #if whale_x < -50: whale_x = 1900
-    #whale_screen_x = whale_x - viewport_x
-    #whale_rect.x = whale_screen_x
-    #window.blit(whale_surface, whale_rect)
-    whales.update(viewport_x,tower1)
+
+    whales.update(viewport_x, tower1)
     whales.draw(window)
 
     pygame.display.flip()
