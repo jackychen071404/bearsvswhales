@@ -1,8 +1,13 @@
 import pygame
 import time
 import random
+from classwhale import Whale
+from classbear import Bear
+from classbutton import Button
+from classtower import Tower
 
 pygame.init()
+clock = pygame.time.Clock()
 font = pygame.font.Font('freesansbold.ttf', 32)
 
 window_width = 1200
@@ -22,91 +27,27 @@ drag_start = (0, 0)
 background_image = pygame.image.load("back.png").convert()
 background_image = pygame.transform.scale(background_image, (map_width, map_height))
 
-class Button(pygame.sprite.Sprite):
-    def __init__(self):
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, x, y):
         super().__init__()
-        self.button_width = 200
-        self.button_height = 50
-        self.button_x = (window_width - self.button_width) // 2 - 300
-        self.button_y = (window_height - self.button_height) // 2 + 300
-        self.image = pygame.image.load("button.png")
-        self.rect = self.image.get_rect(topleft = (self.button_x,self.button_y))
-    #click to add whale
-    def update(self,mouse_x,mouse_y,whales):
-        if self.rect.collidepoint(mouse_x, mouse_y):
-            whales.add(Whale(1900))
+        self.value = 1
+        self.rect = pygame.Rect(x, y, 20, 20)
 
-class Whale(pygame.sprite.Sprite):
-    def __init__(self,x):
-        super().__init__()
-        self.width = 100
-        self.height = 100
-        self.x = x
-        self.speed = 5
-        self.health = 20
-        self.attack = 5
-        self.atkspeed = 500   #attack every 500 milliseconds
-        self.last_attack = pygame.time.get_ticks()   #keep track of time
-        self.atkphase = False
-        self.image = pygame.image.load('whales.png').convert_alpha()
-        self.image = pygame.transform.scale(self.image, (self.width, self.height))
-        self.rect = self.image.get_rect(topleft = (self.x, 535))
-    def move(self):
-        self.x -= self.speed
-    def hurt(self, towerbear):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_attack >= self.atkspeed:
-            if towerbear.sprite.health > 0:
-                towerbear.sprite.health -= 5
-                self.last_attack = current_time
-    def update(self,viewport_x,towerbear):
-        self.viewport_x = viewport_x
-        self.move()
-        self.rect = self.image.get_rect(topleft=(self.x-self.viewport_x, 535))
-        if self.speed == 0: self.atkphase = True
-        else: False
-        if self.atkphase:
-            self.hurt(towerbear)
+COIN_GENERATE_EVENT = pygame.USEREVENT + 1
+COIN_GENERATE_INTERVAL = 100
+coins = pygame.sprite.Group()
+total_coins = 0
 
-class Bear(pygame.sprite.Sprite):
-    def __init__(self,x):
-        super().__init__()
-        self.width = 100
-        self.height = 100
-        self.x = x
-        self.speed = 5
-        self.health = 20
-        self.attack = 5
-        self.atkspeed = 500  # attack every 500 milliseconds
-        self.last_attack = pygame.time.get_ticks()  # keep track of time
-        self.atkphase = False
-        self.image = pygame.image.load('bear.png').convert_alpha()
-        self.image = pygame.transform.scale(self.image, (self.width, self.height))
-        self.rect = self.image.get_rect(topleft=(self.x, 535))
-    def move(self):
-        self.x += self.speed
-    def update(self,viewport_x,towerbear):
-        self.viewport_x = viewport_x
-        self.move()
-        self.rect = self.image.get_rect(topleft=(self.x-self.viewport_x, 535))
+def generate_coins():
+    global total_coins
+    for _ in range(1):
+        x = random.randint(0, window_width)
+        y = random.randint(0, window_height)
+        coin = Coin(x, y)
+        coins.add(coin)
+        total_coins += coin.value
 
-class Tower(pygame.sprite.Sprite):
-    def __init__(self,x,y):
-        super().__init__()
-        self.x = x
-        self.y = y
-        self.width = 200
-        self.height = 400
-        self.health = 200
-        self.maxhealth = 200
-        self.image = pygame.image.load("eiffel.jpg")
-        self.image = pygame.transform.scale(self.image, (self.width, self.height))
-        self.rect = self.image.get_rect(topleft = (self.x,self.y))
-    def update(self,viewport_x,window):
-        self.rect = self.image.get_rect(topleft=(self.x-viewport_x, self.y))
-        text = font.render(str(self.health) + " / " + str(self.maxhealth), True, (255,255,255))
-        text_rect = self.image.get_rect(topleft = (self.x + self.width/6 - viewport_x,self.y - 50))
-        window.blit(text,text_rect)
+pygame.time.set_timer(COIN_GENERATE_EVENT, COIN_GENERATE_INTERVAL)
 
 def collision(units,tower):
     if pygame.sprite.spritecollide(tower.sprite,units,False):
@@ -117,8 +58,7 @@ def stop(units,tower):
     list = pygame.sprite.spritecollide(tower.sprite, units, False)
     for units in list:
         units.speed = 0
-
-clock = pygame.time.Clock()
+        units.atktower = True
 
 button = Button()
 buttons = pygame.sprite.Group()
@@ -138,13 +78,14 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
+        elif event.type == COIN_GENERATE_EVENT:
+            generate_coins()
         mouse_x, mouse_y = pygame.mouse.get_pos()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left mouse button
                 dragging = True
                 drag_start = event.pos
-            button.update(mouse_x,mouse_y,whales)
+            total_coins = button.update(mouse_x,mouse_y,whales,total_coins)
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # Left mouse button
                 dragging = False
@@ -164,6 +105,21 @@ while running:
     window.blit(background_image, (-viewport_x, -viewport_y))
     buttons.draw(window)
 
+    collides = pygame.sprite.groupcollide(whales, bears, False, False)
+    if collides:
+        for whale in collides.keys():
+            whale.speed = 0
+            bear.speed = 0
+            whale.atkunit = True
+            bear.atkunit = True
+    else:
+        for bear in bears:
+            bear.speed = 5
+            bear.atkunit = False
+        for whale in whales:
+            whale.speed = 5
+            whale.atkunit = False
+
     for whale in whales:
         if collision(whales,tower1):
             stop(whales,tower1)
@@ -172,16 +128,24 @@ while running:
         if collision(bears,tower2):
             stop(bears,tower2)
 
+    cointext = font.render("Coins: " + str(total_coins), True, (255, 255, 255))
+    window.blit(cointext, (10, 10))
+
     tower1.update(viewport_x,window)
     tower1.draw(window)
     tower2.update(viewport_x,window)
     tower2.draw(window)
 
-    whales.update(viewport_x, tower1)
+    whales.update(viewport_x, tower1,bears)
     whales.draw(window)
 
-    bears.update(viewport_x,tower2)
+    bears.update(viewport_x,tower2,whales)
     bears.draw(window)
+
+    if tower1.sprite.health == 0:
+        text = font.render("VICTORY!",True,(0,0,0))
+        text_rect = tower1.sprite.image.get_rect(topleft=(600,400))
+        window.blit(text, text_rect)
 
     pygame.display.flip()
     clock.tick(60)
