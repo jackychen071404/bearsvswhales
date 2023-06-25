@@ -1,0 +1,75 @@
+import pygame
+from settings import *
+
+pygame.init()
+
+screen = pygame.display.set_mode((screen_width, screen_height))
+background = pygame.transform.scale(pygame.image.load('Battle_Background.png'), (screen_width, screen_height)).convert()
+clock = pygame.time.Clock()
+
+class Tower(pygame.sprite.Sprite):
+    def __init__(self, coordinates):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load(tower_image).convert(), (100, 170))
+        self.rect = self.image.get_rect(midbottom=coordinates)
+        self.health = 1000
+
+class Icon(pygame.sprite.Sprite):
+    def __init__(self, image_file, coordinates):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load(image_file).convert_alpha(), (90, 70))
+        self.rect = self.image.get_rect(midbottom=coordinates)
+
+class Unit(pygame.sprite.Sprite):
+    def __init__(self, image_file, coordinates):
+        super().__init__()
+        self.image = pygame.transform.rotozoom(pygame.image.load(image_file).convert_alpha(), 0, 0.55)
+        self.rect = self.image.get_rect(midbottom=coordinates)
+
+    def update(self):
+        if self.rect.colliderect(tower1):
+            self.rect.x -= 0
+        else:
+            self.rect.x -= 1
+
+    def draw(self):
+        screen.blit(self.image, self.rect)
+
+
+# Towers
+tower1 = Tower((100, 400))
+tower2 = Tower((800, 400))
+
+# Icons
+whale_icon1 = Icon('Whale_Icon.png', (250, 590))
+whale_icon2 = Icon('Whale_Icon.png', (350, 590))
+whale_icon3 = Icon('Whale_Icon.png', (450, 590))
+whale_icon4 = Icon('Whale_Icon.png', (550, 590))
+whale_icon5 = Icon('Whale_Icon.png', (650, 590))
+
+# Sprite group
+tower_group = pygame.sprite.Group(tower1, tower2)
+icon_group = pygame.sprite.Group(whale_icon1, whale_icon2, whale_icon3, whale_icon4, whale_icon5)
+unit_group = pygame.sprite.Group()
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                mouse_pos = pygame.mouse.get_pos()
+                for index, sprite in enumerate(icon_group):
+                    if sprite.rect.collidepoint(mouse_pos):
+                        print(f"Mouse clicked sprite {index}")
+                        whale_unit = Unit('Whale.png', (775, 420))
+                        unit_group.add(whale_unit)
+
+    screen.blit(background, (0, 0))
+    tower_group.draw(screen)
+    icon_group.draw(screen)
+    unit_group.update()
+    unit_group.draw(screen)
+    pygame.display.update()
+    clock.tick(fps)
