@@ -14,9 +14,6 @@ from object.OK import OK
 
 #setting up
 pygame.init()
-bg_music = pygame.mixer.Sound("GUNNA.mp3")
-bg_music.play(loops=-1)
-bg_music.set_volume(0.1)
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 32)
 window_width = 1200
@@ -38,7 +35,6 @@ class Viewport():
         self.y = 0
         self.dragging = False
         self.drag_start = (0,0)
-viewport = Viewport()
 
 class Wallet():
     def __init__(self):
@@ -47,11 +43,9 @@ class Wallet():
     def update(self):
         if self.total_coins > self.max_coins:
             self.total_coins = self.max_coins
-wallet = Wallet()
 
 class Level_01_State:
-    def __init__(self,viewport,wallet,running):
-        self.running = running
+    def __init__(self,viewport,wallet):
         self.tutorialstart = True
         self.tutorial = pygame.transform.scale(pygame.image.load("../Tower_BGs/tutorial.png").convert(),(window_width,window_height))
 
@@ -84,8 +78,8 @@ class Level_01_State:
             y = random.randint(0, window_height)
             coin = Coin(x, y)
             self.coins.add(coin)
-            if wallet.total_coins < wallet.max_coins:
-                wallet.total_coins += coin.value
+            if self.wallet.total_coins < self.wallet.max_coins:
+                self.wallet.total_coins += coin.value
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -140,9 +134,9 @@ class Level_01_State:
             pygame.time.set_timer(self.COIN_GENERATE_EVENT, self.COIN_GENERATE_INTERVAL) #set timers
             pygame.time.set_timer(self.BEAR_GENERATE_EVENT, self.BEAR_GENERATE_INTERVAL)
             self.gamestart = False
-        viewport.x = max(0, min(viewport.x, self.map_width - window_width))
-        viewport.y = max(0, min(viewport.y, self.map_height - window_height))
-        window.blit(self.background_image, (-viewport.x, -viewport.y))
+        self.viewport.x = max(0, min(self.viewport.x, self.map_width - window_width))
+        self.viewport.y = max(0, min(self.viewport.y, self.map_height - window_height))
+        window.blit(self.background_image, (-self.viewport.x, -self.viewport.y))
 
         BS.draw(window) #draw buttons and put timers on them
         self.buttons.draw(window)
@@ -151,15 +145,15 @@ class Level_01_State:
                 button.timer(clock, window)
 
         window.blit(self.coin_icon, self.coin_rect) #draw money
-        cointext = font.render("Monies: " + str(wallet.total_coins) + "/" + str(wallet.max_coins), True, (0, 0, 0))
+        cointext = font.render("Monies: " + str(self.wallet.total_coins) + "/" + str(self.wallet.max_coins), True, (0, 0, 0))
         window.blit(cointext, (10, 755))
-        wallet.update()
+        self.wallet.update()
 
         for bear in self.bears: # check collisions
             if bear.health > 0:
                 bear.speed = bear.maxspeed
             bear.atkunit = False
-            stop(self.bears, self.tower2)
+            self.stop(self.bears, self.tower2)
             if len(self.whales) > 0:
                 for whale in self.whales:
                     if pygame.Rect.colliderect(bear.range, whale.rect):
@@ -169,13 +163,13 @@ class Level_01_State:
                         if bear.health <= 0:
                             bear.speed = -8
                             if not bear.is_dead:
-                                wallet.total_coins += 10
+                                self.wallet.total_coins += 10
                                 bear.is_dead = True
         for whale in self.whales:
             if whale.health > 0:
                 whale.speed = whale.maxspeed
             whale.atkunit = False
-            stop(self.whales, self.tower1)
+            self.stop(self.whales, self.tower1)
             if len(self.bears) > 0:
                 for bear in self.bears:
                     if pygame.Rect.colliderect(whale.rect, bear.rect):
@@ -185,13 +179,13 @@ class Level_01_State:
                         if whale.health <= 0:
                             whale.speed = -8
         # draw guys
-        self.tower1.update(viewport.x, window, 2)
+        self.tower1.update(self.viewport.x, window, 2)
         self.tower1.draw(window)
-        self.tower2.update(viewport.x, window, 6)
+        self.tower2.update(self.viewport.x, window, 6)
         self.tower2.draw(window)
-        self.whales.update(viewport.x, self.tower1, self.bears)
+        self.whales.update(self.viewport.x, self.tower1, self.bears)
         self.whales.draw(window)
-        self.bears.update(viewport.x, self.tower2, self.whales)
+        self.bears.update(self.viewport.x, self.tower2, self.whales)
         self.bears.draw(window)
         # victory or defeat
         if self.tower1.sprite.health == 0:
@@ -207,15 +201,15 @@ class Level_01_State:
             Okay.draw(window)
             Okay.update(pygame.mouse.get_pos())
 
-def stop(units,tower):
-    for units in pygame.sprite.spritecollide(tower.sprite, units, False):
-        if units.health > 0:
-            units.speed = 0
-            units.atktower = True
+    def stop(self,units,tower):
+        for units in pygame.sprite.spritecollide(tower.sprite, units, False):
+            if units.health > 0:
+                units.speed = 0
+                units.atktower = True
 
 running = True
-Level1 = Level_01_State(viewport,wallet,running)
-while Level1.running:
+Level1 = Level_01_State(Viewport(),Wallet())
+while running:
     #event handler
     Level1.handle_events()
     # Render the background image
@@ -223,3 +217,4 @@ while Level1.running:
     pygame.display.flip()
     clock.tick(60)
 pygame.quit()
+quit()
